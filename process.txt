@@ -104,8 +104,23 @@ where you just want to collect the exit status after the child exits
 
 -Analyzing a Child Process’ Exit Status
 We can use the macros provided by <sys/wait.h> header
-    
-    WIFEXITED = child exited normally
-    specifically by calling exit() or _exit() or returning from main().
-    WEXITSTATUS macro returns the exit code specified by the child, and if it didn't exit normally,
-    then the code won't match the intended
+*WIFEXITED returns if the child exited normally
+specifically by calling exit() or _exit() or returning from main().
+
+*WEXITSTATUS macro returns the exit code specified by the child, and if it didn't exit normally,
+then the code won't match the intended (see status.c)
+
+
+-Kill: Terminating Child Processes
+to kil the child processes from the parent, we use kill from the <signal.h> lib
+*int kill(pid_t pid, int sig);
+
+There're 7 types of sginals to send by the kill to the desired pid. 
+Frequently used are perhaps SIGTERM (soft termination signal) and SIGKILL (hard kill signal).
+
+kill returns 0 for success and -1 for failure 
+
+-signal macros
+*WIFSIGNALED returns True if Status indicates that the process exited 
+because it received a signal.
+*WTERMSIG WTERMSIG extracts from Status the signal number which caused the process to exit
