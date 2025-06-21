@@ -54,11 +54,11 @@ As a result, that would block the system,
 so the system won't be able to execute new processes
 
 
---SOLUTIONNN
--The whole problem arises from the fact that the parent doesn't systematically take care of its children,
+-SOLUTIONNN
+*The whole problem arises from the fact that the parent doesn't systematically take care of its children,
 so the solution would be simply waiting for them 
 
-To achieve that, we use the following system calls from <sys/wait.h>
+*To achieve that, we use the following system calls from <sys/wait.h>
 pid_t wait(int *status);
 pid_t waitpid(pid_t pid, int *status, int options);
 
@@ -76,8 +76,8 @@ when the child was created.
 Alternatively, we can provide -1 to wait for whatever child process 
 that finishes first just like wait, so waitpid(-1, status, 0) = wait(status)
 
-Also we got options for waitpid 
---WNOHANG option for waitpid returns immediately if the child process has not ended yet,
+-Also we got options for waitpid 
+*WNOHANG option for waitpid returns immediately if the child process has not ended yet,
 without this option, the parent process will by default remain SUSPENDED as long as 
 the child is still executing its tasks.
 
@@ -87,7 +87,7 @@ the return value is
 -If no child has exited/terminated yet, it returns 0 immediately.
 -If an error occurs, it returns -1.
 
---When to use?
+-When to use?
 *You don’t want to block your main process/thread.
 *You want to poll periodically for terminated child processes.
 *You’re writing an event-driven program (like a server) 
@@ -111,7 +111,8 @@ specifically by calling exit() or _exit() or returning from main().
 then the code won't match the intended (see status.c)
 
 
--Kill: Terminating Child Processes
+----------------------Kill: Terminating Child Processes----------------------
+
 to kil the child processes from the parent, we use kill from the <signal.h> lib
 *int kill(pid_t pid, int sig);
 
@@ -124,3 +125,8 @@ kill returns 0 for success and -1 for failure
 *WIFSIGNALED returns True if Status indicates that the process exited 
 because it received a signal.
 *WTERMSIG WTERMSIG extracts from Status the signal number which caused the process to exit
+
+
+----------------------RESOURCES----------------------
+https://www.codequoi.com/en/creating-and-killing-child-processes-in-c/
+https://www.cs.tufts.edu/comp/21/notes/processes/processes_c.html
