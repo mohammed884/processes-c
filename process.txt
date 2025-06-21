@@ -1,0 +1,111 @@
+----------------------DEFINIION----------------------
+Both a program and a process are set of instructions,
+the main difference is that the program lives on the hardrive/ssd,
+and the process lives on the RAM where it has its own heap, stack, process table.
+Another way to put it,
+the process is the program with all of the resources need for its excution
+
+                                        [INSTRUCTIONS]
+[setting in the storage unit (program)] -------------- [livss in the RAM, with addditional resources (process)]
+
+
+----------------------FORK VALUES----------------------
+When forking, we are making an exact copy of the parent process
+*NOTE -> memory is duplicated, 
+BUT they don't share memory when the change is made inside the routine
+
+/FORK VALUES 
+-When pid is ZERO we are in the child process,
+-When it's ONE we are in the parent
+-If it's MINUS ONE there's an error
+
+----------------------STICK FOR THE CHILD----------------------
+Problem: The parent process does not systematically take care of its children.
+If our child process is asleep for 1 second and we let the parent terminates
+we will get something like this 
+
+Forking...
+We are in the parent routine
+Number from parent routine -> 8
+We are in the child routine
+>>>terminated
+╰─ Number from child routine -> 5
+
+WHY?
+
+This happens because our shell process is only waiting for the parent process (its child) to finish, 
+it doesn't care about our program's child, (shell process's grand-child).
+In such cases the parent process finishes before the child finishes, as a result the child becomes an orphan process.
+To address this issue, it's quickly adopted by the process init (the first process started during the boot sequence)
+and its PPID becomes 1 and gets eliminated from the system.
+
+
+----------------------AVOID ZOMBIES----------------------
+A zombie process is a process that has finished its task but stays on the system, 
+waiting for its parent to acknowledge it 
+
+-NOTE: A zombie process isn't a problem as long as the parent retrives it, it consumes no energy and takes up no space,
+and it's eliminated by its adoptive parent (init) if it becomes orphaned.
+
+--BUTT
+-if we got a parent process that is never intended to end (server, background process, etc...) that creates
+children regularly and doesn't wait for them to finish and acknowledge them, the system's table might get saturated easily.
+As a result, that would block the system, 
+so the system won't be able to execute new processes
+
+
+--SOLUTIONNN
+-The whole problem arises from the fact that the parent doesn't systematically take care of its children,
+so the solution would be simply waiting for them 
+
+To achieve that, we use the following system calls from <sys/wait.h>
+pid_t wait(int *status);
+pid_t waitpid(pid_t pid, int *status, int options);
+
+The wait system call retrieve the first terminated child,
+whereas waitpid holds out for the child matching the PID that we indicated
+and ignores all of the others.
+
+*THEY both got the status argument, 
+which is a pointer to an integer that the system calls use to store the exit status, 
+with provided macros to know how the child exited etc..
+
+The extra params of waitpid are PID which is the pid of the child process that we should wait for,
+note that the parent knows this PID because its the value returned from fork syscall
+when the child was created. 
+Alternatively, we can provide -1 to wait for whatever child process 
+that finishes first just like wait, so waitpid(-1, status, 0) = wait(status)
+
+Also we got options for waitpid 
+--WNOHANG option for waitpid returns immediately if the child process has not ended yet,
+without this option, the parent process will by default remain SUSPENDED as long as 
+the child is still executing its tasks.
+
+*The option WNOHANG makes waitpid non-blocking it's useful in servers & event-driven programs
+the return value is 
+-If a child has already terminated, it returns the PID of the terminated child.
+-If no child has exited/terminated yet, it returns 0 immediately.
+-If an error occurs, it returns -1.
+
+--When to use?
+*You don’t want to block your main process/thread.
+*You want to poll periodically for terminated child processes.
+*You’re writing an event-driven program (like a server) 
+and need the main loop to stay responsive.
+*You're using a signal handler (like in a SIGCHLD handler), 
+where blocking is a bad idea.
+
+--When NOT to use?
+*You need to wait for child process to finish before continuing, 
+in this case WNOHANG makse things complex
+*Doing one-time forking, 
+where you just want to collect the exit status after the child exits
+*Writing a simple linear script
+
+-Analyzing a Child Process’ Exit Status
+We can use the macros provided by <sys/wait.h> header
+    
+    WIFEXITED = child exited normally
+    specifically by calling exit() or _exit() or returning from main().
+    WEXITSTATUS macro returns the exit code specified by the child, and if it didn't exit normally,
+    then the code won't match the intended
